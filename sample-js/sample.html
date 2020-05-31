@@ -1,0 +1,74 @@
+<!DOCTYPE html><html>
+<head>
+	<script src="http://cdn.olfsoftware.fr/jquery/2/latest.php"></script>
+	<script src="http://cdn.olfsoftware.fr/jquery/plugin/jQuery-MD5-master/jquery.md5.min.js"></script>
+ 	<script src="lognpass-inc.js"></script>
+	<style>
+		input[type="text"] {
+			width: 100%;
+		}
+	</style>
+</head>
+<body>
+	<!-- http://api.lognpass.com/lognpass-js/sample.html -->
+	<form>
+		<p>Log'N Pass phrase : <input type="text" id="phrase" value=""></p>
+		<p>MD5 : <input type="text" id="phrase_md5" value=""></p>
+		<h1>Generate password</h1>
+		<p>Password : <input type="text" id="password" value="" readonly="readonly"></p>
+		<p>Duration : <input type="text" id="duration" value="" readonly="readonly"></p>
+		<h1>Test password</h1>
+		<p>Password : <input type="text" id="passwordtocheck" value=""></p>
+		<p><input type="button" id="testpass" value="check password"></p>
+		<p id="testresult"></p>
+	</form>
+	<script>
+		var api_num = 0;
+		var api_key = '';
+		var api_sec = 0;
+		function refresh_key() {
+			$.getJSON('http://api.lognpass.com/get/', function(data, statut, xhr) {
+				if ('success' == statut)
+				{
+					phrase = $('#phrase').val();
+					phrase_md5 = $.md5(phrase);
+					$('#phrase_md5').val(phrase_md5);
+					api_sec = data.sec;
+					api_num = data.num;
+					api_key = data.key;
+					password = lognpass_get_password(phrase_md5,api_key,api_num);
+					$('#password').val(password);
+				}
+				else
+				{
+					$('#password').val(statut);
+				}
+			});
+		}
+		function tictac() {
+			if (api_sec-- < 1)
+				refresh_key();
+			if (api_sec < 1)
+				api_sec = 0;
+			$('#duration').val(api_sec.toString());
+		}
+		$(document).ready(function() {
+			setInterval('tictac()',1000);
+			$('#phrase').on('change',function() {
+				if ('' != api_key)
+				{
+					$('#phrase_md5').val($.md5($('#phrase').val()));
+					$('#password').val(lognpass_get_password($('#phrase_md5').val(),api_key,api_num));
+				}
+			});
+			$('#testpass').on('click',function() {
+				lognpass_check_password($('#phrase_md5').val(),$('#passwordtocheck').val(),function() {
+					$('#testresult').text('access granted');
+				}, function() {
+					$('#testresult').text('access refused');
+				});
+			});
+		});
+	</script>
+</body>
+</html>
